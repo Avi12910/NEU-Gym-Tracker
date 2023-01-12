@@ -1,36 +1,47 @@
-const Plotly = require('plotly.js-dist');
-const Papa = require('papaparse');
+// Import d3
+import * as d3 from 'd3'
 
-// Read CSV file
-Papa.parse("data.csv", {
-    header: true,
-    download: true,
-    dynamicTyping: true,
-    complete: function (results) {
-        let data = results.data;
+// Read the CSV
+d3.csv('https://neugymcsv.s3.amazonaws.com/data.csv', (data) => {
+    // Set up the graph
+    const svg = d3.select('body')
+        .append('svg')
+        .attr('width', 800)
+        .attr('height', 600);
 
-        // Organize data by location
-        let locations = {};
-        data.forEach(row => {
-            let location = row.location;
-            let count = row.count;
-            let time = row.time;
+    // Nest the data by location
+    const nestedData = d3.nest()
+        .key(d => d.location)
+        .entries(data);
 
-            if (!locations[location]) {
-                locations[location] = {
-                    x: [],
-                    y: [],
-                    mode: 'lines',
-                    name: location
-                };
-            }
+    // Create a color scale
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-            locations[location].x.push(time);
-            locations[location].y.push(count);
-        });
+    // Add a group for each location
+    const groups = svg.selectAll('g')
+        .data(nestedData)
+        .enter()
+        .append('g')
+        .attr('transform', (d, i) => `translate(0, ${i * 150})`);
 
-        // Create line chart for each location
-        let plotData = Object.values(locations);
-        Plotly.newPlot('chart', plotData);
-    }
+    // Add a path for each group
+    groups.append('path')
+        .attr('d', d => {
+            // Compute the line
+            return d3.line()
+                .x(d => d3.scaleLinear().domain([0, d3.max(data, d => d.time)]).range([0, 800])(d.time))
+                .y(d => d3.scaleLinear().domain([0, d3.max(data, d => d.count)]).range([600, 0])(d.count))
+                (d.values);
+        })
+        .attr('stroke', d => color(d.key))
+        .attr('stroke-width', 2)
+        .attr('fill', 'none');
+
+    // Add a label for each group
+    groups.append('text')
+        .attr('x', 820)
+        .attr('y', d => d3.scaleLinear().domain([0, d3.max(data, d => d.count)]).range([600, 0])(d.values[0].count))
+        .text(d => d.key)
+        .attr('fill', d => color(d.key))
+        .attr('font-size', '14px');
 });
