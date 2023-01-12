@@ -2,10 +2,15 @@
 <html>
   <head>
     <title>Northeastern Gym Tracker</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="frontpage.js"></script>
   </head>
   <body>
     <h1>Northeastern Gym Tracker</h1>
     <div id="chart"></div>
+    <script>
+        const { createChart } = require('./chart.js');
+        createChart();
+    </script>
   </body>
 </html>
